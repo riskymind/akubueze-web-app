@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CHAIRMAN
+  FINSEC
+  SECRETARY
+}
+
+model User {
+  id           String  @id @default(cuid())
+  username     String  @unique
+  passwordHash String
+  name         String
+  role         Role
+  memberId     String? @unique
+  member       Member? @relation(fields: [memberId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Member {
+  id       String   @id @default(cuid())
+  name     String
+  phone    String
+  joinDate DateTime
+
+  dues         Due[]
+  levyPayments LevyPayment[]
+  user         User?
+
+  createdAt DateTime @default(now())
+}
+
+model Meeting {
+  id       String   @id @default(cuid())
+  label    String
+  date     DateTime
+  recorded Boolean  @default(false)
+
+  minutesFileName String?
+  minutesFilePath String?
+  minutesFileType String?
+
+  dues Due[]
+
+  createdAt DateTime @default(now())
+}
+
+model Due {
+  id        String  @id @default(cuid())
+  memberId  String
+  meetingId String
+  paid      Boolean @default(false)
+  late      Boolean @default(false)
+
+  member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, meetingId])
+}
+
+model Levy {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Int      @default(5000)
+  dateCreated DateTime @default(now())
+
+  payments LevyPayment[]
+}
+
+model LevyPayment {
+  id       String  @id @default(cuid())
+  levyId   String
+  memberId String
+  paid     Boolean @default(false)
+
+  levy   Levy   @relation(fields: [levyId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([levyId, memberId])
+}
