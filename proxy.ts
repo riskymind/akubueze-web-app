@@ -1,4 +1,13 @@
-export { default } from "next-auth/middleware";
+import withAuth from "next-auth/middleware";
+import type { NextRequest } from "next/server";
+
+const authMiddleware = withAuth({
+  pages: { signIn: "/login" },
+});
+
+export default function proxy(req: NextRequest) {
+  return authMiddleware(req as never, {} as never);
+}
 
 export const config = {
   // Protect everything except the login page, next-auth's own routes,

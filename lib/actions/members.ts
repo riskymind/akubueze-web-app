@@ -2,6 +2,7 @@
 
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -38,7 +39,16 @@ export async function deleteMember(memberId: string) {
     throw new Error("Not authorized to delete members.");
   }
 
-  await prisma.member.delete({ where: { id: memberId } });
+  try {
+    await prisma.member.delete({ where: { id: memberId } });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2003") {
+      throw new Error(
+        "This member is hosting one or more meetings or levies and can't be deleted. Assign a different host on those first."
+      );
+    }
+    throw e;
+  }
 
   revalidatePath("/members");
   revalidatePath("/dashboard");

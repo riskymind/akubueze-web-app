@@ -15,10 +15,15 @@ export async function addMeeting(formData: FormData) {
 
   const label = String(formData.get("label") ?? "").trim();
   const dateRaw = String(formData.get("date") ?? "");
+  const hostId = String(formData.get("hostId") ?? "").trim();
   if (!label || !dateRaw) throw new Error("Meeting title and date are required.");
+  if (!hostId) throw new Error("Select a host for this meeting.");
+
+  const host = await prisma.member.findUnique({ where: { id: hostId } });
+  if (!host) throw new Error("Selected host is not a valid member.");
 
   await prisma.meeting.create({
-    data: { label, date: new Date(dateRaw), recorded: false },
+    data: { label, date: new Date(dateRaw), recorded: false, hostId },
   });
 
   revalidatePath("/meetings");

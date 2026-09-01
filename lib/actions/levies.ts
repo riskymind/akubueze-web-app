@@ -20,14 +20,24 @@ export async function addLevy(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) throw new Error("Levy name is required.");
 
+  const hostIdRaw = String(formData.get("hostId") ?? "").trim();
+  const hostId = hostIdRaw || null;
+  if (hostId) {
+    const host = await prisma.member.findUnique({ where: { id: hostId } });
+    if (!host) throw new Error("Selected host is not a valid member.");
+  }
+
   const members = await prisma.member.findMany({ select: { id: true } });
+  // The honoree (if any) doesn't pay their own levy.
+  const payingMembers = members.filter((m) => m.id !== hostId);
 
   await prisma.levy.create({
     data: {
       name,
       amount: DEFAULT_LEVY_AMOUNT,
+      hostId,
       payments: {
-        create: members.map((m) => ({ memberId: m.id, paid: false })),
+        create: payingMembers.map((m) => ({ memberId: m.id, paid: false })),
       },
     },
   });
@@ -57,6 +67,11 @@ export async function deleteLevy(levyId: string) {
 
 export async function toggleLevyPayment(levyId: string, memberId: string) {
   await requireLevyManager();
+
+  const levy = await prisma.levy.findUnique({ where: { id: levyId } });
+  if (levy?.hostId === memberId) {
+    throw new Error("This member is the host of this levy and is exempt from paying it.");
+  }
 
   const existing = await prisma.levyPayment.findUnique({
     where: { levyId_memberId: { levyId, memberId } },

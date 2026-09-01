@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Custom breakpoint matching the original design's single media query. */
+  --breakpoint-agg: 861px;
+
+  /* Palette ported verbatim from the design. */
+  --color-agg-bg: #f7f1e6;
+  --color-agg-sidebar: #22362a;
+  --color-agg-sidebar-text: #f7f1e6;
+  --color-agg-sidebar-muted: #c9b796;
+  --color-agg-sidebar-border: rgba(247, 241, 230, 0.14);
+  --color-agg-gold: #d9a441;
+  --color-agg-terracotta: #c1622d;
+  --color-agg-terracotta-dark: #9c4d21;
+  --color-agg-ink: #3a2a1e;
+  --color-agg-muted: #8a7a63;
+  --color-agg-muted-light: #b3a583;
+  --color-agg-forest: #2f4b3c;
+  --color-agg-danger: #b3402a;
+  --color-agg-danger-text: #7a2e1e;
+  --color-agg-danger-bg: #fbeae5;
+  --color-agg-danger-border: #e5b8ac;
+  --color-agg-success: #3f7a44;
+  --color-agg-success-bg: #ebf3ea;
+  --color-agg-card-border: #eadfc8;
+  --color-agg-card-header: #fbf6ec;
+  --color-agg-modal-bg: #fbf6ec;
+  --color-agg-row-border: #f3ebdc;
+  --color-agg-row-border-2: #efe4d0;
+  --color-agg-input-border: #e0d3b8;
+  --color-agg-track: #f0e6d4;
+  --color-agg-nav-active: rgba(217, 164, 65, 0.16);
+
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+
+  --animate-fade-up: fadeUp 0.35s ease;
+  --animate-pop-in: popIn 0.2s ease;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-agg-bg);
+  font-family: var(--font-sans);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c9b79633;
+  border-radius: 8px;
+}
+
+a {
+  color: var(--color-agg-terracotta);
+}
+a:hover {
+  color: var(--color-agg-terracotta-dark);
 }

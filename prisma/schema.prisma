@@ -4,13 +4,15 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Role {
   CHAIRMAN
   FINSEC
   SECRETARY
+  // Read-only: dashboard, members, levies, meetings. No record-payments,
+  // manage, create, or upload permissions.
+  MEMBER
 }
 
 model User {
@@ -32,9 +34,11 @@ model Member {
   phone    String
   joinDate DateTime
 
-  dues         Due[]
-  levyPayments LevyPayment[]
-  user         User?
+  dues           Due[]
+  levyPayments   LevyPayment[]
+  hostedMeetings Meeting[]     @relation("MeetingHost")
+  hostedLevies   Levy[]        @relation("LevyHost")
+  user           User?
 
   createdAt DateTime @default(now())
 }
@@ -44,6 +48,11 @@ model Meeting {
   label    String
   date     DateTime
   recorded Boolean  @default(false)
+
+  // The hosting member pays the elevated host rate for this meeting
+  // (see HOST_DUES_AMOUNT in lib/constants.ts) instead of the regular rate.
+  hostId String
+  host   Member @relation("MeetingHost", fields: [hostId], references: [id], onDelete: Restrict)
 
   minutesFileName String?
   minutesFilePath String?
@@ -72,6 +81,12 @@ model Levy {
   name        String
   amount      Int      @default(5000)
   dateCreated DateTime @default(now())
+
+  // Set for levies raised for a specific member's event (wedding, funeral,
+  // child dedication, etc.) — that member is exempt from paying it. Left
+  // unset for general levies, which every member pays.
+  hostId String?
+  host   Member? @relation("LevyHost", fields: [hostId], references: [id], onDelete: Restrict)
 
   payments LevyPayment[]
 }
