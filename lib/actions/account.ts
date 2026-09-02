@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canChangePassword } from "@/lib/constants";
 
 export async function changePassword(
   currentPassword: string,
@@ -13,6 +14,9 @@ export async function changePassword(
 ): Promise<{ error?: string }> {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { error: "Not signed in." };
+  if (!canChangePassword(session.user.role)) {
+    return { error: "Member accounts can't change their password." };
+  }
 
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user) return { error: "Not signed in." };

@@ -33,17 +33,20 @@ export const ROLE_LABELS: Record<Role, string> = {
 export const ROLE_OPTIONS: Role[] = ["CHAIRMAN", "FINSEC", "SECRETARY", "MEMBER"];
 
 export function canRecordPayments(role: Role | undefined) {
-  return role === "CHAIRMAN" || role === "FINSEC";
+  return role === "SECRETARY" || role === "FINSEC";
 }
 export function canManageLevies(role: Role | undefined) {
-  return role === "CHAIRMAN" || role === "FINSEC";
+  return role === "SECRETARY" || role === "FINSEC";
 }
 export function canManageMembers(role: Role | undefined) {
-  return role === "CHAIRMAN" || role === "FINSEC";
+  return role === "CHAIRMAN" || role === "SECRETARY";
 }
 export function canCreateMeeting(role: Role | undefined) {
-  return role === "CHAIRMAN" || role === "FINSEC";
+  return role === "CHAIRMAN" || role === "SECRETARY";
 }
 export function canUploadMinutes(role: Role | undefined) {
-  return role === "CHAIRMAN" || role === "SECRETARY";
+  return  role === "SECRETARY";
+}
+export function canChangePassword(role: Role | undefined) {
+  return role !== "MEMBER";
 }

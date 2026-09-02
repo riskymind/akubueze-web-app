@@ -12,7 +12,7 @@ export default async function MembersPage() {
   const [members, meetings, levies] = await Promise.all([
     prisma.member.findMany({
       include: { dues: true, levyPayments: true, user: true },
-      orderBy: { createdAt: "asc" },
+      orderBy: { joinDate: "asc" },
     }),
     prisma.meeting.findMany({ orderBy: { date: "asc" } }),
     prisma.levy.findMany({ orderBy: { dateCreated: "asc" } }),
@@ -43,6 +43,7 @@ export default async function MembersPage() {
         name: m.name,
         phone: m.phone,
         joinDateLabel: fmtDate(m.joinDate),
+        joinDateISO: m.joinDate.toISOString().slice(0, 10),
         initials: initialsOf(m.name),
         avatarColor,
         ledger: recordedMeetings.map((mt) => {

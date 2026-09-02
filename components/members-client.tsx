@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 
-import { addMember, deleteMember } from "@/lib/actions/members";
+import { addMember, deleteMember, updateMember } from "@/lib/actions/members";
 import { Modal } from "@/components/ui/modal";
 
 export type MemberView = {
@@ -19,6 +19,7 @@ export type MemberView = {
     name: string;
     phone: string;
     joinDateLabel: string;
+    joinDateISO: string;
     initials: string;
     avatarColor: string;
     ledger: { label: string; status: string; bg: string; color: string }[];
@@ -35,7 +36,9 @@ export function MembersClient({
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const selected = members.find((m) => m.id === selectedId) ?? null;
+  const editing = members.find((m) => m.id === editingId) ?? null;
 
   return (
     <div className="animate-fade-up">
@@ -94,10 +97,15 @@ export function MembersClient({
           member={selected}
           canManageMembers={canManageMembers}
           onClose={() => setSelectedId(null)}
+          onEdit={() => {
+            setEditingId(selected.id);
+            setSelectedId(null);
+          }}
         />
       )}
 
       {addOpen && <AddMemberModal onClose={() => setAddOpen(false)} />}
+      {editing && <EditMemberModal member={editing} onClose={() => setEditingId(null)} />}
     </div>
   );
 }
@@ -106,10 +114,12 @@ function MemberDetailModal({
   member,
   canManageMembers,
   onClose,
+  onEdit,
 }: {
   member: MemberView;
   canManageMembers: boolean;
   onClose: () => void;
+  onEdit: () => void;
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -225,15 +235,59 @@ function MemberDetailModal({
           Close
         </button>
         {canManageMembers && !confirmDelete && (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="bg-transparent border border-agg-danger text-agg-danger py-2.5 px-4 rounded-[9px] text-[13.5px] font-bold cursor-pointer"
-          >
-            Delete member
-          </button>
+          <>
+            <button
+              onClick={onEdit}
+              className="bg-transparent border border-agg-input-border text-agg-ink py-2.5 px-4 rounded-[9px] text-[13.5px] font-bold cursor-pointer"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="bg-transparent border border-agg-danger text-agg-danger py-2.5 px-4 rounded-[9px] text-[13.5px] font-bold cursor-pointer"
+            >
+              Delete member
+            </button>
+          </>
         )}
       </div>
     </Modal>
+  );
+}
+
+function MemberFormFields({
+  defaultName,
+  defaultPhone,
+  defaultJoinDate,
+}: {
+  defaultName?: string;
+  defaultPhone?: string;
+  defaultJoinDate?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <input
+        required
+        name="name"
+        placeholder="Full name"
+        defaultValue={defaultName}
+        className="px-3.5 py-2.5 rounded-[9px] border border-agg-input-border text-sm"
+      />
+      <input
+        required
+        name="phone"
+        placeholder="Phone number"
+        defaultValue={defaultPhone}
+        className="px-3.5 py-2.5 rounded-[9px] border border-agg-input-border text-sm"
+      />
+      <input
+        required
+        name="joinDate"
+        type="date"
+        defaultValue={defaultJoinDate}
+        className="px-3.5 py-2.5 rounded-[9px] border border-agg-input-border text-sm"
+      />
+    </div>
   );
 }
 
@@ -256,26 +310,7 @@ function AddMemberModal({ onClose }: { onClose: () => void }) {
     <Modal onClose={onClose}>
       <form action={handleSubmit}>
         <div className="font-display text-[22px] text-agg-ink mb-4.5">Add Member</div>
-        <div className="flex flex-col gap-3">
-          <input
-            required
-            name="name"
-            placeholder="Full name"
-            className="px-3.5 py-2.5 rounded-[9px] border border-agg-input-border text-sm"
-          />
-          <input
-            required
-            name="phone"
-            placeholder="Phone number"
-            className="px-3.5 py-2.5 rounded-[9px] border border-agg-input-border text-sm"
-          />
-          <input
-            required
-            name="joinDate"
-            type="date"
-            className="px-3.5 py-2.5 rounded-[9px] border border-agg-input-border text-sm"
-          />
-        </div>
+        <MemberFormFields />
         {error && <div className="text-agg-danger text-[13px] mt-2.5">{error}</div>}
         <div className="flex gap-2.5 mt-5">
           <button
@@ -291,6 +326,58 @@ function AddMemberModal({ onClose }: { onClose: () => void }) {
             className="flex-1 bg-agg-terracotta text-white border-none py-2.5 rounded-[9px] text-[13.5px] font-bold cursor-pointer disabled:opacity-60"
           >
             Add Member
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditMemberModal({
+  member,
+  onClose,
+}: {
+  member: MemberView;
+  onClose: () => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState("");
+
+  function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      try {
+        await updateMember(member.id, formData);
+        onClose();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Something went wrong.");
+      }
+    });
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <form action={handleSubmit}>
+        <div className="font-display text-[22px] text-agg-ink mb-4.5">Edit Member</div>
+        <MemberFormFields
+          defaultName={member.detail.name}
+          defaultPhone={member.detail.phone}
+          defaultJoinDate={member.detail.joinDateISO}
+        />
+        {error && <div className="text-agg-danger text-[13px] mt-2.5">{error}</div>}
+        <div className="flex gap-2.5 mt-5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 bg-transparent border border-agg-input-border text-agg-ink py-2.5 rounded-[9px] text-[13.5px] font-bold cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="flex-1 bg-agg-terracotta text-white border-none py-2.5 rounded-[9px] text-[13.5px] font-bold cursor-pointer disabled:opacity-60"
+          >
+            Save Changes
           </button>
         </div>
       </form>

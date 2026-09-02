@@ -10,17 +10,19 @@ export default async function MeetingsPage() {
   const session = await getServerSession(authOptions);
 
   const [meetings, members] = await Promise.all([
-    prisma.meeting.findMany({ include: { host: true }, orderBy: { date: "asc" } }),
-    prisma.member.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, name: true } }),
+    prisma.meeting.findMany({ include: { host: true }, orderBy: { date: "desc" } }),
+    prisma.member.findMany({ orderBy: { joinDate: "asc" }, select: { id: true, name: true } }),
   ]);
   const uploadAllowed = canUploadMinutes(session?.user.role);
 
   const meetingsView: MeetingView[] = meetings.map((mt) => ({
     id: mt.id,
     label: mt.label,
+    dateISO: mt.date.toISOString().slice(0, 10),
     dateLabel: fmtDate(mt.date),
     recorded: mt.recorded,
     recordedLabel: mt.recorded ? "Payments recorded" : "Not yet recorded",
+    hostId: mt.hostId,
     hostName: mt.host.name,
     hasMinutes: !!mt.minutesFileName,
     minutesFileName: mt.minutesFileName,
@@ -32,7 +34,7 @@ export default async function MeetingsPage() {
     <MeetingsClient
       meetings={meetingsView}
       members={members}
-      canCreateMeeting={canCreateMeeting(session?.user.role)}
+      canManageMeetings={canCreateMeeting(session?.user.role)}
     />
   );
 }

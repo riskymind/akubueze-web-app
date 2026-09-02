@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AVATAR_COLORS, dueAmountFor } from "@/lib/constants";
 import { avatarColorFor, fmtDate, initialsOf, naira } from "@/lib/format";
+import { Reveal } from "@/components/motion/reveal";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -16,7 +17,7 @@ export default async function DashboardPage() {
   });
 
   const [members, meetings, levies] = await Promise.all([
-    prisma.member.findMany({ include: { dues: true }, orderBy: { createdAt: "asc" } }),
+    prisma.member.findMany({ include: { dues: true }, orderBy: { joinDate: "asc" } }),
     prisma.meeting.findMany({ orderBy: { date: "asc" } }),
     prisma.levy.findMany({ include: { payments: true }, orderBy: { dateCreated: "asc" } }),
   ]);
@@ -85,7 +86,7 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="animate-fade-up">
+    <Reveal>
       <div className="flex items-baseline justify-between mb-7">
         <div>
           <div className="font-display text-[24px] agg:text-[34px] text-agg-ink">
@@ -95,14 +96,25 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 agg:grid-cols-4 gap-4 mb-7">
-        <StatCard label="Dues Collected" value={naira(totalDuesCollected)} valueClassName="text-agg-forest" />
-        <StatCard label="Members" value={String(members.length)} />
+      <div className="grid grid-cols-2 agg:grid-cols-3 gap-4 mb-7">
         <StatCard
-          label={`Outstanding (${lastRecordedMeeting ? lastRecordedMeeting.label.split(" ")[0] : "—"})`}
+          label="Dues Collected"
+          value={naira(totalDuesCollected)}
+          valueClassName="text-agg-forest"
+          countTarget={totalDuesCollected}
+          countFormat="naira"
+        />
+        <StatCard
+          label="Members"
+          value={String(members.length)}
+          countTarget={members.length}
+          countFormat="int"
+        />
+        {/* <StatCard
+          label={`Outstanding (${lastRecordedMeeting ? lastRecordedMeeting.label.split(" ")[1]+ " meeting" : "—"})`}
           value={String(outstandingCount)}
           valueClassName="text-agg-danger"
-        />
+        /> */}
         <StatCard
           label="Next Meeting"
           value={upcomingMeeting ? upcomingMeeting.label : "—"}
@@ -112,7 +124,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 agg:grid-cols-[1.3fr_1fr] gap-5">
-        <div className="bg-white rounded-[14px] p-5.5 border border-agg-card-border">
+        <div className="reveal-item bg-white rounded-[14px] p-5.5 border border-agg-card-border">
           <div className="font-display text-xl text-agg-ink mb-4">Recent Payments</div>
           <div className="flex flex-col gap-0.5">
             {topRecentPayments.length === 0 && (
@@ -141,7 +153,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[14px] p-5.5 border border-agg-card-border">
+        <div className="reveal-item bg-white rounded-[14px] p-5.5 border border-agg-card-border">
           <div className="font-display text-xl text-agg-ink mb-4">Levy Collection</div>
           <div className="flex flex-col gap-4">
             {levyProgressList.length === 0 && (
@@ -155,7 +167,8 @@ export default async function DashboardPage() {
                 </div>
                 <div className="h-2 bg-agg-track rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-agg-terracotta rounded-full"
+                    className="reveal-bar h-full bg-agg-terracotta rounded-full"
+                    data-width={lv.percentWidth}
                     style={{ width: lv.percentWidth }}
                   />
                 </div>
@@ -164,7 +177,7 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+    </Reveal>
   );
 }
 
@@ -173,16 +186,28 @@ function StatCard({
   value,
   sub,
   valueClassName = "",
+  countTarget,
+  countFormat,
 }: {
   label: string;
   value: string;
   sub?: string;
   valueClassName?: string;
+  countTarget?: number;
+  countFormat?: "naira" | "int";
 }) {
   return (
-    <div className="bg-white rounded-[14px] p-5 border border-agg-card-border">
+    <div className="reveal-item bg-white rounded-[14px] p-5 border border-agg-card-border">
       <div className="text-xs text-agg-muted font-bold uppercase tracking-wide">{label}</div>
-      <div className={`font-display text-[30px] text-agg-ink mt-2 ${valueClassName}`}>{value}</div>
+      <div
+        className={`font-display text-[30px] text-agg-ink mt-2 ${valueClassName} ${
+          countTarget !== undefined ? "reveal-count" : ""
+        }`}
+        data-target={countTarget}
+        data-format={countFormat}
+      >
+        {value}
+      </div>
       {sub && <div className="text-xs text-agg-muted mt-0.5">{sub}</div>}
     </div>
   );

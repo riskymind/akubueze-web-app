@@ -64,7 +64,9 @@ The host pays ₦5,000 in dues for that meeting; every other member pays the reg
 (both get +₦100 if marked late). This is enforced everywhere dues amounts are shown or totaled
 — dashboard stats, the members' dues ledger, and the payments checklist — via `dueAmountFor()`
 in `lib/constants.ts`. A member currently hosting a meeting can't be deleted until a different
-host is assigned to that meeting.
+host is assigned to that meeting. Meetings, like members and levies, support full create/edit/
+delete — deleting a meeting also removes its payment records and any uploaded minutes file.
+Uploaded minutes can also be replaced or removed independently of deleting the meeting itself.
 
 ## Levies
 
@@ -78,11 +80,13 @@ is assigned.
 
 ## Permissions
 
-- **Record payments, manage levies, manage members, create meetings** — Chairman or Fin-Sec.
-- **Upload meeting minutes** — Chairman or Secretary.
+- **Record payments, manage levies** — Fin-Sec or Secretary.
+- **Manage members, manage meetings (create/edit/delete)** — Chairman or Secretary.
+- **Upload/replace/remove meeting minutes** — Secretary only.
+- **Change password** — everyone except Member.
 - **Member** — read-only: dashboard, members, levies, meetings (including viewing already-uploaded
-  minutes). No record-payments, manage, create, or upload permissions, and no access to
-  `/payments` at all.
+  minutes). No record-payments, manage, create, upload, or password-change permissions, and no
+  access to `/payments` at all.
 - Every one of these is enforced both in the UI (controls are hidden) and again inside each
   Server Action / route handler (`lib/actions/*.ts`, `app/api/minutes/[meetingId]/route.ts`) —
   the server never trusts the client's role.

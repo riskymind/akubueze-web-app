@@ -8,7 +8,7 @@ import { authOptions } from "@/lib/auth";
 import { canUploadMinutes } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { saveUpload } from "@/lib/upload";
+import { deleteUpload, saveUpload } from "@/lib/upload";
 
 type RouteParams = { params: Promise<{ meetingId: string }> };
 
@@ -58,6 +58,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "No file provided." }, { status: 400 });
   }
 
+  const existing = await prisma.meeting.findUnique({ where: { id: meetingId } });
   const { filePath } = await saveUpload(file);
 
   await prisma.meeting.update({
@@ -67,6 +68,32 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       minutesFilePath: filePath,
       minutesFileType: file.type || "application/octet-stream",
     },
+  });
+  // Clean up the file being replaced, if any.
+  await deleteUpload(existing?.minutesFilePath);
+
+  revalidatePath("/meetings");
+
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(_req: NextRequest, { params }: RouteParams) {
+  const session = await getServerSession(authOptions);
+  if (!canUploadMinutes(session?.user.role)) {
+    return NextResponse.json({ error: "Not authorized." }, { status: 403 });
+  }
+
+  const { meetingId } = await params;
+  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
+  if (!meeting) {
+    return NextResponse.json({ error: "Meeting not found." }, { status: 404 });
+  }
+
+  await deleteUpload(meeting.minutesFilePath);
+
+  await prisma.meeting.update({
+    where: { id: meetingId },
+    data: { minutesFileName: null, minutesFilePath: null, minutesFileType: null },
   });
 
   revalidatePath("/meetings");

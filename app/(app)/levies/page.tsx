@@ -14,7 +14,7 @@ export default async function LeviesPage() {
       include: { payments: true, host: true },
       orderBy: { dateCreated: "asc" },
     }),
-    prisma.member.findMany({ orderBy: { createdAt: "asc" } }),
+    prisma.member.findMany({ orderBy: { joinDate: "asc" } }),
   ]);
 
   const leviesView: LevyView[] = levies.map((lv) => {

@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 import { useState } from "react";
 import type { Role } from "@prisma/client";
 
-import { ROLE_LABELS } from "@/lib/constants";
+import { ROLE_LABELS, canChangePassword } from "@/lib/constants";
 import { initialsOf } from "@/lib/format";
 import { ChangePasswordModal } from "@/components/change-password-modal";
 
@@ -106,12 +106,14 @@ export function Shell({
               </div>
             </div>
           </div>
-          <button
-            onClick={() => setChangePasswordOpen(true)}
-            className="w-full bg-transparent border border-[rgba(247,241,230,0.25)] text-agg-sidebar-text py-2.5 rounded-lg text-[13px] font-semibold cursor-pointer mb-2"
-          >
-            Change password
-          </button>
+          {canChangePassword(user.role) && (
+            <button
+              onClick={() => setChangePasswordOpen(true)}
+              className="w-full bg-transparent border border-[rgba(247,241,230,0.25)] text-agg-sidebar-text py-2.5 rounded-lg text-[13px] font-semibold cursor-pointer mb-2"
+            >
+              Change password
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="w-full bg-transparent border border-[rgba(247,241,230,0.25)] text-agg-sidebar-text py-2.5 rounded-lg text-[13px] font-semibold cursor-pointer"

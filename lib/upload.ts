@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 
 export const UPLOADS_DIR = path.join(process.cwd(), "uploads");
@@ -12,4 +12,14 @@ export async function saveUpload(file: File) {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(filePath, buffer);
   return { storedName, filePath };
+}
+
+/** Best-effort delete — a missing file (already gone, or never on disk) is not an error. */
+export async function deleteUpload(filePath: string | null | undefined) {
+  if (!filePath) return;
+  try {
+    await unlink(filePath);
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException)?.code !== "ENOENT") throw e;
+  }
 }

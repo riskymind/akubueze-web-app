@@ -1,9 +1,44 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 
 import { addLevy, deleteLevy, editLevyName, toggleLevyPayment } from "@/lib/actions/levies";
 import { Modal } from "@/components/ui/modal";
+
+/** A levy's progress bar. Doesn't replay on mount — only animates when its
+ * width actually changes (e.g. a payment gets toggled), so revisiting the
+ * page doesn't re-trigger a gimmick fill-in every time. */
+function LevyProgressBar({ percentWidth }: { percentWidth: string }) {
+  const barRef = useRef<HTMLDivElement>(null);
+  const prevWidth = useRef<string | null>(null);
+
+  useGSAP(
+    () => {
+      if (prevWidth.current !== null && prevWidth.current !== percentWidth) {
+        const mm = gsap.matchMedia();
+        mm.add("(prefers-reduced-motion: no-preference)", () => {
+          gsap.fromTo(
+            barRef.current,
+            { width: prevWidth.current! },
+            { width: percentWidth, duration: 0.5, ease: "power2.out" }
+          );
+        });
+        prevWidth.current = percentWidth;
+        return () => mm.revert();
+      }
+      prevWidth.current = percentWidth;
+    },
+    { dependencies: [percentWidth] }
+  );
+
+  return (
+    <div className="flex-1 h-2.25 bg-agg-track rounded-full overflow-hidden">
+      <div ref={barRef} className="h-full bg-agg-gold rounded-full" style={{ width: percentWidth }} />
+    </div>
+  );
+}
 
 export type LevyView = {
   id: string;
@@ -155,12 +190,7 @@ function LevyCard({ levy, canManageLevies }: { levy: LevyView; canManageLevies: 
             </div>
           )}
           <div className="flex items-center gap-3 mt-3">
-            <div className="flex-1 h-2.25 bg-agg-track rounded-full overflow-hidden">
-              <div
-                className="h-full bg-agg-gold rounded-full"
-                style={{ width: levy.percentWidth }}
-              />
-            </div>
+            <LevyProgressBar percentWidth={levy.percentWidth} />
             <div className="text-[13px] font-bold text-agg-forest whitespace-nowrap">
               {levy.progressLabel}
             </div>

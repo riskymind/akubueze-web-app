@@ -13,7 +13,7 @@ export default async function PaymentsPage() {
 
   const [meetings, members] = await Promise.all([
     prisma.meeting.findMany({ orderBy: { date: "asc" } }),
-    prisma.member.findMany({ include: { dues: true }, orderBy: { createdAt: "asc" } }),
+    prisma.member.findMany({ include: { dues: true }, orderBy: { joinDate: "asc" } }),
   ]);
 
   const meetingPills = meetings.map((mt) => ({
