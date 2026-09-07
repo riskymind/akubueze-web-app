@@ -1,8 +1,9 @@
 # Akụbueze Age Grade Association
 
 Meeting, dues, levy, and membership management for the Akụbueze Age Grade Association — a
-Next.js (App Router) + TypeScript + Prisma rebuild of the original Claude Design prototype
-(`Akubueze Age Grade.dc.html`).
+Next.js (App Router) + TypeScript + Prisma.
+
+![Homepage](public/homepage.png)
 
 ## Stack
 
@@ -48,14 +49,11 @@ Next.js (App Router) + TypeScript + Prisma rebuild of the original Claude Design
 
 | Role | Username | Password |
 | --- | --- | --- |
-| Chairman | `chairman` | `chair2026` |
-| Fin-Sec | `finsec` | `finsec2026` |
-| Secretary | `secretary` | `sec2026` |
-| Member (read-only) | `member` | `member2026` |
+| Chairman | `chairman` | `password` |
+| Fin-Sec | `finsec` | `password` |
+| Secretary | `secretary` | `password` |
+| Member (read-only) | `member` | `password` |
 
-**Rotate these before using the app for anything real** — use the in-app "Change password" flow
-from the sidebar once signed in. These are no longer shown on the login page itself (removed once
-the app started holding real member data) — this table is the only place they're documented.
 
 ## Meeting dues
 
