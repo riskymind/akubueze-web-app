@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canCreateMeeting, canRecordPayments } from "@/lib/constants";
-import { deleteUpload } from "@/lib/upload";
+import { utapi } from "@/lib/uploadthing-server";
 
 async function requireMeetingManager() {
   const session = await getServerSession(authOptions);
@@ -58,7 +58,9 @@ export async function deleteMeeting(meetingId: string) {
   const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
   if (!meeting) return;
 
-  await deleteUpload(meeting.minutesFilePath);
+  if (meeting.minutesFileKey) {
+    await utapi.deleteFiles(meeting.minutesFileKey).catch(() => {});
+  }
   await prisma.meeting.delete({ where: { id: meetingId } });
 
   revalidatePath("/meetings");

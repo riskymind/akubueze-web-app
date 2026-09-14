@@ -54,9 +54,12 @@ model Meeting {
   hostId String
   host   Member @relation("MeetingHost", fields: [hostId], references: [id], onDelete: Restrict)
 
+  // Files are stored on UploadThing; minutesFilePath holds the file's public
+  // UploadThing URL and minutesFileKey its storage key (needed to delete it).
   minutesFileName String?
   minutesFilePath String?
   minutesFileType String?
+  minutesFileKey  String?
 
   dues Due[]
 

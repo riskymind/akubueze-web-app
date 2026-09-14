@@ -27,6 +27,7 @@ export default async function MeetingsPage() {
     hasMinutes: !!mt.minutesFileName,
     minutesFileName: mt.minutesFileName,
     minutesFileType: mt.minutesFileType,
+    minutesFileUrl: mt.minutesFilePath,
     canUpload: uploadAllowed,
   }));
 

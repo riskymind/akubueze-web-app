@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 
 import { addMeeting, deleteMeeting, updateMeeting } from "@/lib/actions/meetings";
+import { useUploadThing } from "@/lib/uploadthing";
 import { Modal } from "@/components/ui/modal";
 
 export type MeetingView = {
@@ -18,6 +19,7 @@ export type MeetingView = {
   hasMinutes: boolean;
   minutesFileName: string | null;
   minutesFileType: string | null;
+  minutesFileUrl: string | null;
   canUpload: boolean;
 };
 
@@ -92,20 +94,30 @@ function MeetingRow({
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [removing, setRemoving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const { startUpload } = useUploadThing("minutesUploader", {
+    onClientUploadComplete: () => {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      router.refresh();
+    },
+    onUploadError: (e) => {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setUploadError(e.message || "Upload failed.");
+    },
+  });
+
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadError("");
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    await fetch(`/api/minutes/${meeting.id}`, { method: "POST", body: formData });
-    setUploading(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    router.refresh();
+    await startUpload([file], { meetingId: meeting.id });
   }
 
   async function handleRemoveMinutes() {
@@ -162,6 +174,9 @@ function MeetingRow({
           <div className="text-[13px] text-agg-muted mt-0.5">
             Hosted by <span className="font-semibold text-agg-ink">{meeting.hostName}</span> · pays ₦5,000
           </div>
+          {uploadError && (
+            <div className="text-[12.5px] text-agg-danger mt-1">{uploadError}</div>
+          )}
         </div>
         <div className="flex items-center gap-2.5 shrink-0 flex-wrap justify-end">
           {meeting.hasMinutes && (
@@ -225,7 +240,7 @@ function MinutesViewerModal({
   meeting: MeetingView;
   onClose: () => void;
 }) {
-  const src = `/api/minutes/${meeting.id}`;
+  const src = meeting.minutesFileUrl ?? "";
   const isPdf = meeting.minutesFileType === "application/pdf";
   const isImage = !!meeting.minutesFileType?.startsWith("image/");
 

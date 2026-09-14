@@ -1,82 +1,17 @@
-import { createReadStream } from "fs";
-import { stat } from "fs/promises";
 import { getServerSession } from "next-auth";
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
-import { Readable } from "stream";
 
 import { authOptions } from "@/lib/auth";
 import { canUploadMinutes } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
-import { deleteUpload, saveUpload } from "@/lib/upload";
+import { utapi } from "@/lib/uploadthing-server";
 
 type RouteParams = { params: Promise<{ meetingId: string }> };
 
-export async function GET(_req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Not signed in." }, { status: 401 });
-  }
-
-  const { meetingId } = await params;
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  if (!meeting?.minutesFilePath) {
-    return NextResponse.json({ error: "No minutes on file." }, { status: 404 });
-  }
-
-  const fileStat = await stat(meeting.minutesFilePath).catch(() => null);
-  if (!fileStat) {
-    return NextResponse.json({ error: "File missing on disk." }, { status: 404 });
-  }
-
-  const stream = Readable.toWeb(
-    createReadStream(meeting.minutesFilePath)
-  ) as ReadableStream;
-
-  return new NextResponse(stream, {
-    headers: {
-      "Content-Type": meeting.minutesFileType || "application/octet-stream",
-      "Content-Length": String(fileStat.size),
-      "Content-Disposition": `inline; filename="${encodeURIComponent(
-        meeting.minutesFileName || "minutes"
-      )}"`,
-      "Cache-Control": "private, max-age=0, must-revalidate",
-    },
-  });
-}
-
-export async function POST(req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions);
-  if (!canUploadMinutes(session?.user.role)) {
-    return NextResponse.json({ error: "Not authorized." }, { status: 403 });
-  }
-
-  const { meetingId } = await params;
-  const formData = await req.formData();
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "No file provided." }, { status: 400 });
-  }
-
-  const existing = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  const { filePath } = await saveUpload(file);
-
-  await prisma.meeting.update({
-    where: { id: meetingId },
-    data: {
-      minutesFileName: file.name,
-      minutesFilePath: filePath,
-      minutesFileType: file.type || "application/octet-stream",
-    },
-  });
-  // Clean up the file being replaced, if any.
-  await deleteUpload(existing?.minutesFilePath);
-
-  revalidatePath("/meetings");
-
-  return NextResponse.json({ ok: true });
-}
-
+// Uploading minutes happens directly against UploadThing (see
+// app/api/uploadthing/core.ts, which updates the meeting record once the
+// upload completes). This route only handles removing minutes already on file.
 export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   const session = await getServerSession(authOptions);
   if (!canUploadMinutes(session?.user.role)) {
@@ -89,11 +24,18 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Meeting not found." }, { status: 404 });
   }
 
-  await deleteUpload(meeting.minutesFilePath);
+  if (meeting.minutesFileKey) {
+    await utapi.deleteFiles(meeting.minutesFileKey).catch(() => {});
+  }
 
   await prisma.meeting.update({
     where: { id: meetingId },
-    data: { minutesFileName: null, minutesFilePath: null, minutesFileType: null },
+    data: {
+      minutesFileName: null,
+      minutesFilePath: null,
+      minutesFileType: null,
+      minutesFileKey: null,
+    },
   });
 
   revalidatePath("/meetings");
