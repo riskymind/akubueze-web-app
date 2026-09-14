@@ -45,7 +45,7 @@ export default function LoginPage() {
     >
       <form
         onSubmit={handleSubmit}
-        className="bg-agg-modal-bg w-full max-w-[400px] rounded-[18px] px-7 py-8 shadow-[0_20px_60px_rgba(0,0,0,0.3)] animate-pop-in"
+        className="bg-agg-modal-bg w-full max-w-100 rounded-[18px] px-7 py-8 shadow-[0_20px_60px_rgba(0,0,0,0.3)] animate-pop-in"
       >
         <div className="text-center mb-6">
           <div className="font-display italic text-[30px] text-agg-sidebar">Akụbueze</div>
